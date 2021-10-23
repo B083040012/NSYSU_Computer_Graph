@@ -126,15 +126,10 @@ function divideTetra( a, b, c, d, count )
 
         --count;
         
-        // divideTetra(  a, ab, ac, ad, count );
-        // divideTetra( ab,  b, bc, bd, count );
-        // divideTetra( ac, bc,  c, cd, count );
-        // divideTetra( ad, bd, cd,  d, count );
-        
         divideTetra(  a, ab, ac, ad, count );
         divideTetra( ab,  b, bc, bd, count );
         divideTetra( ac, bc,  c, cd, count );
-        divideTetra(ad, bd, cd, d, count);
+        divideTetra( ad, bd, cd,  d, count );
     }
 }
 
