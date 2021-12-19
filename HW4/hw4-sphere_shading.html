@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+// assume both position and normal are in homogeneous form
+
+attribute vec4 vPosition;
+attribute vec4 vNormal;
+
+varying vec4 fColor;
+varying vec3 N, L, E;
+varying vec3 L2;
+
+uniform mediump vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform vec4 lightPosition2;
+uniform mediump float shininess;
+uniform mat3 normalMatrix;
+
+uniform highp int shadingMode;
+uniform highp int lightMode;
+
+void
+main()
+{
+    fColor=vec4(0,0,0,0);
+    if(shadingMode==1){
+        vec3 pos = (modelViewMatrix * vPosition).xyz;
+        vec3 L;
+        vec3 E = -normalize( pos );
+        vec3 N = normalize( normalMatrix*vNormal.xyz);
+        vec4 ambient = ambientProduct;
+
+        if(lightMode>=1){
+            if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+            else L = normalize( lightPosition.xyz - pos );
+
+            vec3 H = normalize( L + E );
+
+            float Kd = max( dot(L, N), 0.0 );
+            vec4  diffuse = Kd*diffuseProduct;
+
+            float Ks = pow( max(dot(N, H), 0.0), shininess );
+            vec4  specular = Ks * specularProduct;
+            
+            if( dot(L, N) < 0.0 ) {
+                specular = vec4(0.0, 0.0, 0.0, 1.0);
+            } 
+
+            fColor += (ambient + diffuse +specular);
+        }
+
+        if(lightMode>=2){
+            if(lightPosition2.w == 0.0) L = normalize(lightPosition2.xyz);
+            else L = normalize( lightPosition2.xyz - pos );
+
+            vec3 H = normalize( L + E );
+
+            float Kd = max( dot(L, N), 0.0 );
+            vec4  diffuse = Kd*diffuseProduct;
+
+            float Ks = pow( max(dot(N, H), 0.0), shininess );
+            vec4  specular = Ks * specularProduct;
+            
+            if( dot(L, N) < 0.0 ) {
+                specular = vec4(0.0, 0.0, 0.0, 1.0);
+            } 
+
+            fColor += (ambient + diffuse +specular);
+        }
+
+        gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+        fColor.a = 1.0;
+    }
+    else{
+        vec3 pos = (modelViewMatrix * vPosition).xyz;
+
+        if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+        else L = normalize( lightPosition.xyz - pos );
+
+        if(lightMode>=2){
+            if(lightPosition2.w == 0.0) L2 = normalize(lightPosition2.xyz);
+            else L2 = normalize( lightPosition2.xyz - pos );
+        }
+        
+        E =  -normalize(pos);
+        N = normalize( normalMatrix*vNormal.xyz);
+
+        gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+    }
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+varying vec4 fColor;
+
+uniform mediump vec4 ambientProduct;
+uniform mediump vec4 diffuseProduct;
+uniform mediump vec4 specularProduct;
+uniform mediump float shininess;
+varying vec3 N, L, E;
+varying vec3 L2;
+
+uniform highp int shadingMode;
+uniform highp int lightMode;
+
+void
+main()
+{
+    if(shadingMode==1){
+        gl_FragColor = fColor;
+    }
+    else{
+        vec4 fColorTmp;
+        
+        vec3 H = normalize( L + E );
+        vec4 ambient = ambientProduct;
+
+        float Kd = max( dot(L, N), 0.0 );
+        vec4  diffuse = Kd*diffuseProduct;
+
+        float Ks = pow( max(dot(N, H), 0.0), shininess );
+        vec4  specular = Ks * specularProduct;
+        
+        if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+        fColorTmp = ambient + diffuse +specular;
+
+        if(lightMode>=2){
+            vec3 H = normalize( L2 + E );
+            vec4 ambient = ambientProduct;
+
+            float Kd = max( dot(L2, N), 0.0 );
+            vec4  diffuse = Kd*diffuseProduct;
+
+            float Ks = pow( max(dot(N, H), 0.0), shininess );
+            vec4  specular = Ks * specularProduct;
+            
+            if( dot(L2, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+            fColorTmp += (ambient + diffuse +specular);
+        }
+        fColorTmp.a = 1.0;
+        gl_FragColor = fColorTmp;
+    }
+
+}
+</script>
+
+<p> </p>
+<button id = "Button0">Enlarge</button>
+<button id = "Button1">Smaller</button>
+
+<p> </p>
+<button id = "Button2">Increase theta</button>
+<button id = "Button3">Decrease theta</button>
+<button id = "Button4">Increase phi</button>
+<button id = "Button5">Decrease phi</button>
+
+<p> </p>
+<select onchange="changeShading()" id="shadingID">
+    <option value="1" selected>Gouraud Shading</option>
+    <option value="2">Phong Shading</option>
+</select>
+<p> </p>
+
+<p></p>
+<select onchange="changeMaterial()" id="materialID">
+    <option value="1" selected>Metal</option>
+    <option value="2">Plastic</option>
+    <option value="3">Carbon</option>
+</select>
+<p></p>
+
+<p></p>
+<select onchange="changeLight()" id="lightID">
+    <option value="1" selected>1 light</option>
+    <option value="2">2 lights</option>
+</select>
+<p></p>
+
+<script type="text/javascript" src="Common/webgl-utils.js"></script>
+<script type="text/javascript" src="Common/initShaders.js"></script>
+
+<script type="text/javascript" src="Common/MV.js"></script>
+<script type="text/javascript" src="hw4.js"></script>
+
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>
